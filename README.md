@@ -1,6 +1,6 @@
-# PostfixRelay
+# PSFXSuite
 
-A modern web application for managing Postfix as an internal SMTP relay server.
+A modern web application for managing Postfix.
 
 ## Features
 
