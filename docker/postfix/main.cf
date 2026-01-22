@@ -1,0 +1,38 @@
+# Postfix main.cf - Development/Test Configuration
+# This file is managed by PostfixRelay for testing purposes
+
+# Basic settings
+myhostname = mail.local
+mydomain = local
+myorigin = $mydomain
+
+# Network settings
+inet_interfaces = all
+inet_protocols = ipv4
+mynetworks = 127.0.0.0/8 172.16.0.0/12 192.168.0.0/16 10.0.0.0/8
+
+# Relay settings (modify via PostfixRelay UI)
+relayhost =
+smtp_sasl_auth_enable = no
+
+# TLS settings
+smtpd_tls_security_level = may
+smtp_tls_security_level = may
+smtpd_tls_cert_file = /etc/ssl/certs/ssl-cert-snakeoil.pem
+smtpd_tls_key_file = /etc/ssl/private/ssl-cert-snakeoil.key
+
+# Relay restrictions
+smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, defer_unauth_destination
+
+# Queue settings
+maximal_queue_lifetime = 5d
+bounce_queue_lifetime = 5d
+
+# Logging
+maillog_file = /var/log/maillog
+
+# Misc
+biff = no
+append_dot_mydomain = no
+readme_directory = no
+compatibility_level = 3.6

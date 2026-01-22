@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Postfix mail server
+  postfix:
+    build:
+      context: ./docker/postfix
+      dockerfile: Dockerfile
+    container_name: psfx-postfix
+    hostname: mail.local
+    ports:
+      - "25:25"
+      - "587:587"
+    volumes:
+      - postfix-config:/etc/postfix
+      - postfix-spool:/var/spool/postfix
+      - postfix-logs:/var/log
+    environment:
+      - POSTFIX_MYHOSTNAME=mail.local
+      - POSTFIX_MYDOMAIN=local
+    networks:
+      - psfx-network
+    healthcheck:
+      test: ["CMD", "postfix", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Dovecot IMAP/POP3 server
+  dovecot:
+    build:
+      context: ./docker/dovecot
+      dockerfile: Dockerfile
+    container_name: psfx-dovecot
+    ports:
+      - "143:143"
+      - "993:993"
+    volumes:
+      - dovecot-config:/etc/dovecot
+      - maildir-data:/var/mail
+      - postfix-config:/etc/postfix:ro
+    depends_on:
+      - postfix
+    networks:
+      - psfx-network
+    healthcheck:
+      test: ["CMD", "doveadm", "service", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Backend API server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: psfx-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # SECURITY: These secrets MUST be changed in production!
+      # Generate with: openssl rand -hex 32
+      - APP_SECRET=${APP_SECRET:-dev-only-secret-do-not-use-in-production-12345}
+      - DB_ENCRYPTION_KEY=${DB_ENCRYPTION_KEY:-dev-only-enckey-do-not-use-in-production-1}
+      - DB_PATH=/data/psfx.db
+      - LOG_LEVEL=debug
+      - POSTFIX_CONFIG_DIR=/etc/postfix
+      - POSTFIX_HOST=postfix
+      - DOVECOT_HOST=dovecot
+      - ENV=${ENV:-development}
+    volumes:
+      - backend-data:/data
+      - postfix-config:/etc/postfix
+      - postfix-logs:/var/log
+      - dovecot-config:/etc/dovecot
+      - maildir-data:/var/mail
+    depends_on:
+      postfix:
+        condition: service_healthy
+    networks:
+      - psfx-network
+
+  # Frontend development server
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: psfx-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://backend:8080
+    depends_on:
+      - backend
+    networks:
+      - psfx-network
+
+volumes:
+  postfix-config:
+  postfix-spool:
+  postfix-logs:
+  backend-data:
+  dovecot-config:
+  maildir-data:
+
+networks:
+  psfx-network:
+    driver: bridge

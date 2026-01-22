@@ -1,0 +1,38 @@
+# PostfixRelay sudoers configuration
+# Allow postfixrelay user to run specific Postfix commands without password
+# Security: Wildcards removed where possible, wrapper scripts used for validation
+
+# Postfix service management (no arguments needed)
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postfix check
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postfix reload
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postfix status
+
+# Postconf - read-only operations
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postconf -n
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postconf -d mail_version
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postconf -c /etc/postfix -n
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postconf -P
+
+# Postmap - for specific map files in /etc/postfix
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postmap /etc/postfix/transport
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postmap /etc/postfix/sender_relay
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postmap /etc/postfix/sasl_passwd
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postmap /etc/postfix/virtual
+
+# Postconf with config directory argument
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postconf -c /etc/postfix -n
+
+# Queue inspection (no dangerous arguments)
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postqueue -p
+postfixrelay ALL=(root) NOPASSWD: /usr/sbin/postqueue -f
+
+# Queue management - use wrapper script with queue ID validation
+postfixrelay ALL=(root) NOPASSWD: /opt/postfixrelay/scripts/safe-postsuper.sh
+
+# Log access - specific unit only, limited output
+postfixrelay ALL=(root) NOPASSWD: /bin/journalctl -u postfix -n 1000 --no-pager
+postfixrelay ALL=(root) NOPASSWD: /bin/journalctl -u postfix -f --no-pager
+
+# Read-only config file access
+postfixrelay ALL=(root) NOPASSWD: /bin/cat /etc/postfix/main.cf
+postfixrelay ALL=(root) NOPASSWD: /bin/cat /etc/postfix/master.cf
